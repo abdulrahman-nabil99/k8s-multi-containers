@@ -39,6 +39,38 @@ jobs:
             --name ${{ secrets.EKS_CLUSTER_NAME }} \
             --region ${{ secrets.AWS_REGION }} \
             --verbose
+          
+          # Display the kubeconfig for debugging
+          echo "=== Kubeconfig contents ==="
+          kubectl config view --minify
+          
+          # Check if aws-iam-authenticator is available
+          echo "=== Checking authenticator ==="
+          which aws-iam-authenticator || echo "aws-iam-authenticator not found in PATH"
+          aws --version
+      
+      - name: Install aws-iam-authenticator
+        run: |
+          # Download and install aws-iam-authenticator as a backup
+          curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.14/aws-iam-authenticator_0.6.14_linux_amd64
+          chmod +x ./aws-iam-authenticator
+          sudo mv ./aws-iam-authenticator /usr/local/bin/
+          aws-iam-authenticator version
+          
+          # Also ensure AWS CLI v2 is being used
+          aws --version
+      
+      - name: Test direct EKS token generation
+        run: |
+          echo "=== Testing token generation ==="
+          TOKEN=$(aws eks get-token --cluster-name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --output json | jq -r '.status.token')
+          if [ -n "$TOKEN" ]; then
+            echo "✅ Token generated successfully"
+            echo "Token length: ${#TOKEN}"
+          else
+            echo "❌ Failed to generate token"
+            exit 1
+          fi
       
       - name: Verify AWS and kubectl connection
         run: |
