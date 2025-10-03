@@ -40,4 +40,3 @@ jobs:
       - name: Get Ingress URL
         run: |
           echo "Your app is available at: http://$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
-
